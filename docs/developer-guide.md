@@ -1,6 +1,6 @@
 # IRL Engine — Developer Guide
 
-*v1.2 · March 2026*
+*v1.3 · April 2026*
 
 ---
 
@@ -23,36 +23,39 @@
 
 ## 1. Quick Integration
 
+Install the SDK:
+
+```bash
+pip install irl-sdk
+```
+
 The integration has two mandatory calls per trade:
 
 ### Step 1 — Authorize (before placing the order)
 
 ```python
-from irl_client import IRLClient
+from irl_sdk import IRLClient, AuthorizeRequest, TradeAction, OrderType
 
-irl = IRLClient(
-    base_url="http://localhost:4000",
-    token="mp_xxxxxxxxxxxx",
-    agent_id="00000000-0000-0000-0000-000000000001",
-    model_hash_hex=IRLClient.compute_model_hash({
-        "model": "hmm-v3.1",
-        "features": ["vix", "yield_curve", "credit_spread"],
-        "version": "1.0",
-    }),
-)
-
-auth = irl.authorize(
-    action="Long",
-    quantity=2.0,
-    asset="BTC-PERP",
-    notional=120_000.0,
-    order_type="MARKET",
-    client_order_id="your-internal-id-001",
-    # valid_time_ms defaults to now — set it to the model inference timestamp
-    # if your agent runs inference before this call
-)
-# auth.trace_id — include in your exchange order metadata
-# auth.shadow_blocked — True if SHADOW_MODE intercepted a policy block
+async with IRLClient(
+    irl_url="https://irl.macropulse.live",
+    api_token="your-token",
+    mta_url="https://api.macropulse.live",
+) as client:
+    req = AuthorizeRequest(
+        agent_id="00000000-0000-0000-0000-000000000001",
+        model_id="hmm-v3.1",
+        model_hash_hex="your-model-hash-hex",
+        action=TradeAction.LONG,
+        asset="BTC-PERP",
+        order_type=OrderType.MARKET,
+        venue_id="coinbase",
+        quantity=2.0,
+        notional=120_000.0,
+        notional_currency="USD",
+    )
+    auth = await client.authorize(req)
+    # auth.trace_id — include in your exchange order metadata
+    # auth.shadow_blocked — True if SHADOW_MODE intercepted a policy block
 ```
 
 ### Step 2 — Bind (after receiving exchange confirmation)
@@ -77,59 +80,96 @@ the intent was sealed and the rejection was itself captured.
 
 ## 2. SDK Reference
 
-### Python SDK (`sdks/python/irl_client.py`)
+### Python SDK (`pip install irl-sdk`)
 
-#### `IRLClient(base_url, token, agent_id, model_hash_hex, **kwargs)`
-
-| Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
-| `base_url` | str | required | `"http://localhost:4000"` |
-| `token` | str | required | Bearer token from `IRL_API_TOKENS` |
-| `agent_id` | str | required | UUID from `POST /irl/agents` |
-| `model_hash_hex` | str | required | Use `compute_model_hash(config_dict)` |
-| `model_id` | str | `"default"` | Human-readable model name |
-| `prompt_version` | str | `"v1.0"` | Prompt template version |
-| `feature_schema_id` | str | `"default"` | Input feature schema identifier |
-| `hyperparameter_checksum` | str | 64 zeros | Hex checksum of hyperparams |
-| `timeout` | int | `10` | HTTP timeout in seconds |
-
-#### `IRLClient.compute_model_hash(config_dict) → str`
-
-Computes `SHA-256(canonical_json(config_dict))`. Keys are sorted; no whitespace.
-Use this once at startup and store the result.
-
-#### `irl.authorize(action, quantity, asset, notional, **kwargs) → AuthorizeResult`
-
-| Field | Notes |
-|-------|-------|
-| `action` | `"Long"` / `"Short"` / `"Neutral"` |
-| `order_type` | `"MARKET"` (default) / `"LIMIT"` / `"STOP"` / `"TWAP"` / `"VWAP"` |
-| `valid_time_ms` | Model inference timestamp (ms). Defaults to `time.time() * 1000`. |
-
-Returns `AuthorizeResult(trace_id, reasoning_hash, authorized, shadow_blocked)`.
-
-#### `irl.bind(trace_id, exchange_order_id, **kwargs) → BindResult`
-
-Returns `BindResult(trace_id, final_proof, verification_status, execution_status, divergence_reason)`.
-
-### TypeScript SDK (`sdks/typescript/irl-client.ts`)
-
-```ts
-import { IRLClient } from "./irl-client";
-
-const irl = new IRLClient({
-  baseUrl: "http://localhost:4000",
-  token: "mp_xxxxxxxxxxxx",
-  agentId: "00000000-0000-0000-0000-000000000001",
-  modelHashHex: await IRLClient.computeModelHash({ model: "hmm-v3.1" }),
-});
-
-const auth = await irl.authorize({ action: "Long", quantity: 2, asset: "BTC-PERP", notional: 120_000 });
-const bind = await irl.bind({ traceId: auth.traceId, exchangeOrderId: "EX-12345" });
+```bash
+pip install irl-sdk
 ```
 
-`IRLClient.computeModelHash(config)` uses the Web Crypto API (`crypto.subtle.digest`).
-Available in Node ≥ 18, all modern browsers, Deno, and Bun.
+#### `IRLClient(irl_url, api_token, mta_url)`
+
+| Parameter | Type | Notes |
+|-----------|------|-------|
+| `irl_url` | str | IRL Engine base URL, e.g. `"https://irl.macropulse.live"` |
+| `api_token` | str | Bearer token from `IRL_API_TOKENS` |
+| `mta_url` | str | MTA operator base URL for heartbeat fetch. Omit when `LAYER2_ENABLED=false`. |
+
+Use as an async context manager (`async with IRLClient(...) as client:`).
+
+#### `AuthorizeRequest` fields
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `agent_id` | str | UUID from `POST /irl/agents` |
+| `model_id` | str | Human-readable model name |
+| `model_hash_hex` | str | 64-char SHA-256 of model config |
+| `action` | TradeAction | `TradeAction.LONG` / `SHORT` / `NEUTRAL` |
+| `asset` | str | e.g. `"BTC-USD"` |
+| `order_type` | OrderType | `OrderType.MARKET` / `LIMIT` / `STOP` / `TWAP` / `VWAP` |
+| `venue_id` | str | Exchange identifier |
+| `quantity` | float | Order size |
+| `notional` | float | Notional value |
+| `notional_currency` | str | e.g. `"USD"` |
+| `client_order_id` | str | Optional. Your internal order ID. |
+
+#### `client.authorize(req) → AuthorizeResult`
+
+Fetches a signed heartbeat from `mta_url`, then POSTs to `/irl/authorize`.
+Returns `AuthorizeResult(trace_id, reasoning_hash, authorized, shadow_blocked)`.
+
+### TypeScript SDK (`npm install irl-sdk`)
+
+```bash
+npm install irl-sdk
+```
+
+```ts
+import { IRLClient, IRLError, IRLHeartbeatError } from "irl-sdk";
+
+const client = new IRLClient({
+  irlUrl: "https://irl.macropulse.live",
+  apiToken: process.env.IRL_API_TOKEN!,
+  mtaUrl: "https://api.macropulse.live",
+  timeoutMs: 5_000,
+});
+
+// Authorize — heartbeat fetched automatically
+const auth = await client.authorize({
+  agent_id: "00000000-0000-0000-0000-000000000001",
+  model_id: "hmm-v3.1",
+  model_hash_hex: "your-model-hash-hex",
+  action: "Long",      // "Long" | "Short" | "Neutral"
+  asset: "BTC-PERP",
+  venue_id: "CBSE",
+  quantity: 2.0,
+  notional: 120_000,
+});
+
+// Bind — closes the cryptographic chain
+const bind = await client.bindExecution({
+  trace_id: auth.trace_id,
+  exchange_tx_id: "EX-12345",
+  execution_status: "Filled",
+  asset: "BTC-PERP",
+  executed_quantity: 2.0,
+  execution_price: 61_234.50,
+});
+
+await client.close();
+```
+
+**Error handling:**
+```ts
+try {
+  const auth = await client.authorize(req);
+} catch (err) {
+  if (err instanceof IRLHeartbeatError) { /* MTA unreachable */ }
+  else if (err instanceof IRLError) { console.error(err.status, err.body); }
+}
+```
+
+`action` serialisation: `"Long"` → `{ Long: quantity }`, `"Short"` → `{ Short: quantity }`, `"Neutral"` → `"Neutral"`.
+Requires Node.js ≥ 18. Exports both CJS and ESM. See [irl-sdk on npm](https://www.npmjs.com/package/irl-sdk).
 
 ---
 
@@ -380,9 +420,9 @@ curl -s -X POST http://localhost:4000/irl/bind-execution \
 |----------|---------|-------------|
 | `DATABASE_URL` | required | PostgreSQL connection string |
 | `IRL_API_TOKENS` | required | Comma-separated bearer tokens |
-| `MTA_MODE` | `MacroPulse` | `mock` for local dev; `MacroPulse` for production |
-| `MTA_URL` | required (prod) | URL of the MTA operator endpoint |
-| `MTA_PUBKEY_HEX` | required (prod) | Ed25519 public key hex of the MTA operator |
+| `MTA_MODE` | `MacroPulse` | `mock` for local dev; `none` for pure audit rail; `MacroPulse` for full L2 production |
+| `MTA_URL` | required (MacroPulse) | URL of the MTA operator endpoint |
+| `MTA_PUBKEY_HEX` | required (MacroPulse) | Ed25519 public key hex of the MTA operator |
 | `LAYER2_ENABLED` | `true` | Set `false` to disable heartbeat requirement in dev |
 | `SHADOW_MODE` | `false` | Set `true` to log violations without blocking |
 | `METRICS_ENABLED` | `true` | Set `false` to suppress `/metrics` endpoint |

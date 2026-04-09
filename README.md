@@ -40,6 +40,68 @@ After execution, the agent calls `POST /irl/bind-execution` with the exchange's 
 
 ---
 
+## SDKs
+
+**Python** (Python 3.10+):
+
+```bash
+pip install irl-sdk
+```
+
+```python
+from irl_sdk import IRLClient, AuthorizeRequest, TradeAction, OrderType
+
+async with IRLClient("https://irl.macropulse.live", "your-token", "https://api.macropulse.live") as client:
+    result = await client.authorize(AuthorizeRequest(
+        agent_id="your-agent-uuid", model_id="my-model-v1", model_hash_hex="...",
+        action=TradeAction.LONG, asset="BTC-USD", order_type=OrderType.MARKET,
+        venue_id="coinbase", quantity=0.1, notional=6500.0, notional_currency="USD",
+    ))
+    print(result.trace_id, result.authorized)
+```
+
+[irl-sdk on PyPI](https://pypi.org/project/irl-sdk/)
+
+**TypeScript / Node.js** (Node.js ≥ 18, CJS + ESM):
+
+```bash
+npm install irl-sdk
+```
+
+```ts
+import { IRLClient } from "irl-sdk";
+
+const client = new IRLClient({
+  irlUrl: "https://irl.macropulse.live",
+  apiToken: process.env.IRL_API_TOKEN!,
+});
+
+const result = await client.authorize({
+  agent_id: "your-agent-uuid",
+  model_id: "my-model-v1",
+  model_hash_hex: "...",
+  action: "Long",
+  asset: "BTC-USD",
+  venue_id: "CBSE",
+  quantity: 0.1,
+  notional: 6500,
+});
+
+if (result.authorized) {
+  const txId = await placeOrder(result.reasoning_hash);
+  await client.bindExecution({
+    trace_id: result.trace_id, exchange_tx_id: txId,
+    execution_status: "Filled", asset: "BTC-USD",
+    executed_quantity: 0.1, execution_price: 65000,
+  });
+}
+await client.close();
+```
+
+[irl-sdk on npm](https://www.npmjs.com/package/irl-sdk)
+
+---
+
 ## Try It Now — No Setup Required
 
 The sandbox at [irl.macropulse.live](https://irl.macropulse.live) has three pre-seeded demo agents:
