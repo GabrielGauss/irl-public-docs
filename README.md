@@ -1,4 +1,8 @@
-# MacroPulse IRL — Public Documentation
+# IRL Engine — Public Documentation
+
+[![Docs Version](https://img.shields.io/badge/docs-v1.2.0-blue)](https://macropulse.live/irl.html)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Sandbox](https://img.shields.io/badge/sandbox-live-brightgreen)](https://irl.macropulse.live)
 
 **IRL (Immutable Reasoning Log)** is a cryptographic pre-execution compliance gateway for autonomous AI trading agents. Every trade decision is sealed with SHA-256 before it reaches the exchange, producing a tamper-evident audit trail that maps directly to MiFID II, EU AI Act, and SEC Rule 15c3-5 requirements.
 
@@ -11,13 +15,17 @@
 
 ## What IRL Does
 
-IRL sits between your AI agent and the exchange. Before any order is placed, the agent calls `POST /irl/authorize` with its full reasoning snapshot. IRL:
+IRL sits between your AI agent and the exchange. Before any order is placed, the agent submits its full reasoning snapshot. After execution, the cryptographic chain is closed and independently verifiable by any auditor.
 
-1. Runs all pre-execution policy checks (position limits, regime constraints, agent registry)
-2. Seals the snapshot with SHA-256 into an immutable `reasoning_hash`
-3. Returns the hash to the agent, which embeds it in the exchange order metadata
+The full authorize → bind flow:
 
-After execution, the agent calls `POST /irl/bind-execution` with the exchange's `tx_id`. IRL computes `final_proof = SHA-256(reasoning_hash ‖ exchange_tx_id)` — the chain is closed and independently verifiable by any auditor.
+1. Agent calls `POST /irl/authorize` with a reasoning snapshot (model ID, hash, action, asset, notional, venue)
+2. IRL verifies the agent exists in the Model Agent Registry (MAR)
+3. IRL runs pre-execution policy checks — position limits, regime constraints, notional caps
+4. The snapshot is sealed with SHA-256 into an immutable `reasoning_hash`
+5. IRL optionally verifies a Layer 2 Ed25519-signed MTA heartbeat (anti-replay, regime binding)
+6. IRL returns `{ trace_id, reasoning_hash, authorized }` — the agent embeds these in the exchange order metadata
+7. After exchange confirmation, the agent calls `POST /irl/bind-execution` with the exchange `tx_id`; IRL computes `final_proof = SHA-256(reasoning_hash ‖ exchange_tx_id)` — the chain is closed
 
 ---
 
@@ -40,7 +48,7 @@ After execution, the agent calls `POST /irl/bind-execution` with the exchange's 
 
 ---
 
-## SDKs
+## SDK Quick Start
 
 **Python** (Python 3.10+):
 
@@ -53,14 +61,24 @@ from irl_sdk import IRLClient, AuthorizeRequest, TradeAction, OrderType
 
 async with IRLClient("https://irl.macropulse.live", "your-token", "https://api.macropulse.live") as client:
     result = await client.authorize(AuthorizeRequest(
-        agent_id="your-agent-uuid", model_id="my-model-v1", model_hash_hex="...",
-        action=TradeAction.LONG, asset="BTC-USD", order_type=OrderType.MARKET,
-        venue_id="coinbase", quantity=0.1, notional=6500.0, notional_currency="USD",
+        agent_id="your-agent-uuid",
+        model_id="my-model-v1",
+        model_hash_hex="...",                  # 64-char SHA-256 hex
+        action=TradeAction.LONG,
+        asset="BTC-USD",
+        order_type=OrderType.MARKET,
+        venue_id="coinbase",
+        quantity=0.1,
+        notional=6500.0,
+        notional_currency="USD",
     ))
-    print(result.trace_id, result.authorized)
+    if result.authorized:
+        print(result.trace_id, result.reasoning_hash)
 ```
 
-[irl-sdk on PyPI](https://pypi.org/project/irl-sdk/)
+[irl-sdk on PyPI](https://pypi.org/project/irl-sdk/) · [Python SDK repo](https://github.com/GabrielGauss/irl-sdk-python)
+
+---
 
 **TypeScript / Node.js** (Node.js ≥ 18, CJS + ESM):
 
@@ -76,6 +94,7 @@ const client = new IRLClient({
   apiToken: process.env.IRL_API_TOKEN!,
 });
 
+// 1. Authorize — fetches a fresh heartbeat automatically
 const result = await client.authorize({
   agent_id: "your-agent-uuid",
   model_id: "my-model-v1",
@@ -88,17 +107,23 @@ const result = await client.authorize({
 });
 
 if (result.authorized) {
+  // 2. Place the order, attaching the IRL trace
   const txId = await placeOrder(result.reasoning_hash);
+
+  // 3. Bind execution — closes the cryptographic chain
   await client.bindExecution({
-    trace_id: result.trace_id, exchange_tx_id: txId,
-    execution_status: "Filled", asset: "BTC-USD",
-    executed_quantity: 0.1, execution_price: 65000,
+    trace_id: result.trace_id,
+    exchange_tx_id: txId,
+    execution_status: "Filled",
+    asset: "BTC-USD",
+    executed_quantity: 0.1,
+    execution_price: 65000,
   });
 }
 await client.close();
 ```
 
-[irl-sdk on npm](https://www.npmjs.com/package/irl-sdk)
+[irl-sdk on npm](https://www.npmjs.com/package/irl-sdk) · [TypeScript SDK repo](https://github.com/GabrielGauss/irl-sdk-ts)
 
 ---
 
@@ -112,7 +137,18 @@ The sandbox at [irl.macropulse.live](https://irl.macropulse.live) has three pre-
 | Equities | `00000000-0000-4000-a000-000000000002` |
 | Futures | `00000000-0000-4000-a000-000000000003` |
 
-Open [Swagger UI](https://irl.macropulse.live/swagger-ui/), pick an agent_id, and run the full authorize → bind-execution flow interactively.
+Open [Swagger UI](https://irl.macropulse.live/swagger-ui/), pick an `agent_id`, and run the full authorize → bind-execution flow interactively.
+
+---
+
+## Ecosystem
+
+| Repo | Description |
+|---|---|
+| [irl-engine](https://github.com/GabrielGauss/irl-engine) | Core IRL Engine — policy checks, cryptographic sealing, Layer 2 |
+| [irl-sdk-python](https://github.com/GabrielGauss/irl-sdk-python) | Async Python SDK |
+| [irl-sdk-ts](https://github.com/GabrielGauss/irl-sdk-ts) | TypeScript/Node.js SDK (CJS + ESM) |
+| [macropulse](https://github.com/GabrielGauss/macropulse) | MacroPulse — the MTA operator powering the Layer 2 heartbeat |
 
 ---
 
@@ -140,6 +176,12 @@ irl-public-docs/
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on filing issues, submitting doc improvements, and the review process.
 
 ---
 
