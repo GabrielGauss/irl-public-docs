@@ -145,7 +145,7 @@ Open [Swagger UI](https://irl.macropulse.live/swagger-ui/), pick an `agent_id`, 
 
 | Repo | Description |
 |---|---|
-| [irl-engine](https://github.com/GabrielGauss/irl-engine) | Core IRL Engine — policy checks, cryptographic sealing, Layer 2 |
+| [IRL-engine-AX](https://github.com/GabrielGauss/IRL-engine-AX) | Core IRL Engine — policy checks, cryptographic sealing, Layer 2 |
 | [irl-sdk-python](https://github.com/GabrielGauss/irl-sdk-python) | Async Python SDK |
 | [irl-sdk-ts](https://github.com/GabrielGauss/irl-sdk-ts) | TypeScript/Node.js SDK (CJS + ESM) |
 | [macropulse](https://github.com/GabrielGauss/macropulse) | MacroPulse — the MTA operator powering the Layer 2 heartbeat |
