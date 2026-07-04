@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-label="MacroPulse">
+  <defs>
+    <clipPath id="cr"><circle cx="54.0" cy="50.0" r="32.0"/></clipPath>
+    <mask id="lmr">
+      <circle cx="44.0" cy="50.0" r="32.0" fill="#fff"/>
+      <circle cx="54.0" cy="50.0" r="32.0" fill="#000"/>
+    </mask>
+  </defs>
+  <g fill="#ffffff">
+    <g mask="url(#lmr)">
+    <rect x="0" y="13.5" width="100" height="4.9"/>
+    <rect x="0" y="22.5" width="100" height="4.9"/>
+    <rect x="0" y="31.5" width="100" height="4.9"/>
+    <rect x="0" y="40.5" width="100" height="4.9"/>
+    <rect x="0" y="49.5" width="100" height="4.9"/>
+    <rect x="0" y="58.5" width="100" height="4.9"/>
+    <rect x="0" y="67.5" width="100" height="4.9"/>
+    <rect x="0" y="76.5" width="100" height="4.9"/>
+    <rect x="0" y="85.5" width="100" height="4.9"/>
+    </g>
+    <g clip-path="url(#cr)">
+    <rect x="0" y="9.0" width="100" height="4.9"/>
+    <rect x="0" y="18.0" width="100" height="4.9"/>
+    <rect x="0" y="27.0" width="100" height="4.9"/>
+    <rect x="0" y="36.0" width="100" height="4.9"/>
+    <rect x="0" y="45.0" width="100" height="4.9"/>
+    <rect x="0" y="54.0" width="100" height="4.9"/>
+    <rect x="0" y="63.0" width="100" height="4.9"/>
+    <rect x="0" y="72.0" width="100" height="4.9"/>
+    <rect x="0" y="81.0" width="100" height="4.9"/>
+    <rect x="0" y="90.0" width="100" height="4.9"/>
+    </g>
+  </g>
+</svg>

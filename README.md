@@ -1,12 +1,21 @@
+<div align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/brand/logo-mono.svg">
+  <img src=".github/brand/logo-green.svg" alt="MacroPulse" width="72" height="72">
+</picture>
+
+<sub>Part of the <a href="https://github.com/GabrielGauss/macropulse-platform">MacroPulse platform</a></sub>
+</div>
+
 # IRL Engine — Public Documentation
 
-[![Docs Version](https://img.shields.io/badge/docs-v1.2.0-blue)](https://macropulse.live/irl.html)
+[![Docs Version](https://img.shields.io/badge/docs-v1.2.0-blue)](https://macropulse.live/irl)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Sandbox](https://img.shields.io/badge/sandbox-live-brightgreen)](https://irl.macropulse.live)
 
 **IRL (Immutable Reasoning Log)** is a cryptographic pre-execution compliance gateway for autonomous AI trading agents. Every trade decision is sealed with SHA-256 before it reaches the exchange, producing a tamper-evident audit trail that maps directly to MiFID II, EU AI Act, and SEC Rule 15c3-5 requirements.
 
-- **Website:** [macropulse.live/irl](https://macropulse.live/irl.html)
+- **Website:** [macropulse.live/irl](https://macropulse.live/irl)
 - **Live API sandbox:** [irl.macropulse.live](https://irl.macropulse.live)
 - **Interactive docs (Swagger UI):** [irl.macropulse.live/swagger-ui/](https://irl.macropulse.live/swagger-ui/)
 - **Licensing:** gabriel.veron134@gmail.com
@@ -191,3 +200,9 @@ Documentation: [CC BY-SA 4.0](LICENSE)
 Code examples in documentation: MIT
 
 © 2026 MacroPulse Research
+
+---
+
+<div align="center">
+<sub>Part of the <a href="https://github.com/GabrielGauss/macropulse-platform">MacroPulse platform</a> · <a href="https://macropulse.live">macropulse.live</a> · <a href="https://macropulse.live/irl">IRL Engine</a></sub>
+</div>
